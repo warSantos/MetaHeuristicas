@@ -24,11 +24,18 @@
 		float valor_otimo;
 	}Problema;
 
+	typedef struct razoes {
+		float razao;
+		int id_mochila;
+	} Razoes;
+
 	/* Funções do programa */
 	Problema* new_problem(char *path);
 
 	void print_problem(Problema *problema);
 
 	void del_problem(Problema **problema);
+
+
 
 #endif
