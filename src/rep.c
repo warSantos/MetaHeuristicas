@@ -18,12 +18,12 @@ Problema *new_problem(char *path){
 	p->itens = calloc(p->qnt_item, sizeof(Item));
 	p->mochilas = calloc(p->qnt_mochilas, sizeof(Mochila));
 
-	//Capturando os pesos dos objetos
+	//Capturando os profits dos objetos
 	for(i = 0; i < p->qnt_item; i++){
-		float peso;
-		fscanf(problema, "%f", &peso);
-		if(peso < 0) printf("Objeto %d invalido\n", i);
-		p->itens[i].peso = peso;
+		float profit;
+		fscanf(problema, "%f", &profit);
+		if(profit < 0) printf("Objeto %d invalido\n", i);
+		p->itens[i].profit = profit;
 	}
 
 	//Capturando as capacidades das mochilas
@@ -63,11 +63,11 @@ void print_problem(Problema *p){
 	printf("Qnt itens: %d\n", p->qnt_item);
 	printf("Solucao otima: %.2f\n\n", p->valor_otimo);
 
-	//Informações sobre pesos dos itens
-	printf("Pesos dos itens\n" 
-			"[item: peso]\n");
+	//Informações sobre profits dos itens
+	printf("profits dos itens\n" 
+			"[item: profit]\n");
 	for(i = 0; i < p->qnt_item; i++){
-		printf("%d: %.2f\n", i, p->itens[i].peso);
+		printf("%d: %.2f\n", i, p->itens[i].profit);
 	}printf("\n");
 
 	//Capturando as capacidades das mochilas

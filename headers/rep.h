@@ -6,8 +6,8 @@
 
 	/* Definição das estruturas de modelagem */
 	typedef struct{
-		float peso; //Peso do objeto
-		int id_mochila; //-1 se não estiver em lugar nenhum
+		float profit; //Peso do objeto.
+		int id_mochila; //-1 se não estiver em nenhuma mochila.
 	}Item;
 
 	typedef struct{

@@ -1,5 +1,5 @@
 #include "../headers/sa.h"
 
-void t(){
-    
+void sa (){
+
 }
