@@ -17,11 +17,21 @@
 	}Mochila;
 
 	typedef struct{
+		Item *itens;
+		Mochila *mochilas;
+		float fo;
+	}S_temporaria;
+
+	typedef struct{
 		int qnt_item;
 		int qnt_mochilas;
 		Item *itens;
-		Mochila *mochilas; 
+		Item *opt_itens;
+		Mochila *mochilas;
+		Mochila *opt_mochilas;
 		float **restricoes;
+		float fo_corrente;
+		float fo_final;
 		float fo_otima;
 	}Problema;
 
