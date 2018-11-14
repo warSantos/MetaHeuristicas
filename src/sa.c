@@ -51,10 +51,14 @@ int restricao_ferida (S_temporaria p, int qnt_mochilas){
     return -1;
 }
 
-float prob_piora (){
+float prob_piora (float delta, float temperatura_corrente){
 
-    float prob = 0;
-    return prob;
+    double limiar = exp (delta / (double) temperatura_corrente);
+    double prob = (double) rand () / RAND_MAX;
+    if (prob < limiar){
+        return 1;
+    }
+    return 0;
 }
 
 void inicializa_so_temp (Problema *p, S_temporaria s_t){
@@ -99,6 +103,7 @@ void sa (Problema *p, float temperatura_inicial,
     //int itens_adicionados = calloc (p->qnt_item, sizeof(int));
     //int ultimo_adicionado = 0;
     float temperatura_corrente = temperatura_inicial;
+    float delta;
     // Gerar solução inicial.
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
@@ -131,8 +136,9 @@ void sa (Problema *p, float temperatura_inicial,
                         }
                     }
                 }
+                delta = s_temp.fo - p->fo_corrente;
                 // TO-DO: Acabar função de probabilidade de piora.
-                if (p->fo_corrente < s_temp.fo || prob_piora ()){
+                if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     
                 }
             }else {
@@ -142,7 +148,8 @@ void sa (Problema *p, float temperatura_inicial,
                 s_temp.fo -= s_temp.itens[bit].profit;
                 s_temp.mochilas[s_temp.itens[bit].id_mochila].cap_restante += p->restricoes[s_temp.itens[bit].id_mochila][bit];
                 // TO-DO: Acabar função de probabilidade de piora.
-                if (p->fo_corrente < s_temp.fo || prob_piora ()){
+                delta = s_temp.fo - p->fo_corrente;
+                if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     
                 }
             }// Se a solução atual for melhor que a global.

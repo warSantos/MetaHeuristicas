@@ -4,6 +4,7 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <time.h>
+	#include <math.h>
 
 	/* Definição das estruturas de modelagem */
 	typedef struct{
