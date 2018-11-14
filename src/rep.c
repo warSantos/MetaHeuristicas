@@ -49,7 +49,7 @@ Problema *new_problem(char *path){
 	}
 
 	// Pegando o valor da solução ótima
-	fscanf(problema, "%f", &(p->valor_otimo));
+	fscanf(problema, "%f", &(p->fo_otima));
 
 	fclose(problema);
 	return p;
@@ -61,7 +61,7 @@ void print_problem(Problema *p){
 	//Informações sobre qnt itens/mochilas e solucao otima
 	printf("Qnt mochilas: %d\n", p->qnt_mochilas);
 	printf("Qnt itens: %d\n", p->qnt_item);
-	printf("Solucao otima: %.2f\n\n", p->valor_otimo);
+	printf("Solucao otima: %.2f\n\n", p->fo_otima);
 
 	//Informações sobre profits dos itens
 	printf("profits dos itens\n" 

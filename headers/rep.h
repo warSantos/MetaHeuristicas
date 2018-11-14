@@ -3,6 +3,7 @@
 
 	#include <stdio.h>
 	#include <stdlib.h>
+	#include <time.h>
 
 	/* Definição das estruturas de modelagem */
 	typedef struct{
@@ -21,13 +22,13 @@
 		Item *itens;
 		Mochila *mochilas; 
 		float **restricoes;
-		float valor_otimo;
+		float fo_otima;
 	}Problema;
 
-	typedef struct razoes {
+	typedef struct razao {
 		float razao;
 		int id_mochila;
-	} Razoes;
+	} Razao;
 
 	/* Funções do programa */
 	Problema* new_problem(char *path);
