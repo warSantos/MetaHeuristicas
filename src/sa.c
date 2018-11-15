@@ -89,13 +89,30 @@ void salva_so_temp (Problema *p, S_temporaria s_t){
     }
 }
 
+void constroi_solucao_inicial (Problema *p){
+    
+    int i,j;
+    // Adicionando elementos com custo 0.
+    for (i = 0; i < p->qnt_mochilas; i++){
+        for (j = 0; j < p->qnt_item; j++){
+            // Se o elemente não possuir custo para ser levado.
+            if (p->restricoes[i][j] == 0){
+                p->itens[j].id_mochila = i;
+                //p->opt_itens[j].id_mochila = i;
+                p->fo_corrente += p->itens[j].profit;
+            }
+        }
+    }
+    p->fo_final = p->fo_corrente;
+}
+
 void sa (Problema *p, float temperatura_inicial, 
-    float temperatura_final, int iter_max, float limiar){
+    float temperatura_final, int iter_max, float alfa){
     
     srand (time(NULL));
     int iteracoes = 0;
     int bit;
-    int i, j;
+    int i;
     S_temporaria s_temp;
     s_temp.itens = malloc (sizeof(Item) * p->qnt_item);
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
@@ -105,6 +122,8 @@ void sa (Problema *p, float temperatura_inicial,
     float temperatura_corrente = temperatura_inicial;
     float delta;
     // Gerar solução inicial.
+    constroi_solucao_inicial (p);
+    return;
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
         // Para uma dada temperatura faça.
@@ -137,9 +156,9 @@ void sa (Problema *p, float temperatura_inicial,
                     }
                 }
                 delta = s_temp.fo - p->fo_corrente;
-                // TO-DO: Acabar função de probabilidade de piora.
+                // TO-DO: Testar solucao probabilidade.
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
-                    
+                    salva_so_temp (p, s_temp);
                 }
             }else {
                 // Removendo o item da mochila.
@@ -147,17 +166,24 @@ void sa (Problema *p, float temperatura_inicial,
                 s_temp.itens[bit].id_mochila = -1;
                 s_temp.fo -= s_temp.itens[bit].profit;
                 s_temp.mochilas[s_temp.itens[bit].id_mochila].cap_restante += p->restricoes[s_temp.itens[bit].id_mochila][bit];
-                // TO-DO: Acabar função de probabilidade de piora.
+                // TO-DO: Testar solucao probabilidade.
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
-                    
+                    salva_so_temp (p, s_temp);
                 }
-            }// Se a solução atual for melhor que a global.
+            }// Se a solução atual for melhor que a melhor encontrada até o momento.
             if (p->fo_final < p->fo_corrente){
-
+                for (i = 0; i < p->qnt_mochilas; ++i){
+                    p->opt_mochilas[i].cap_restante = p->mochilas[i].cap_restante;
+                }
+                for (i = 0; i < p->qnt_item; i++){
+                    p->opt_itens[i].id_mochila = p->itens[i].id_mochila;
+                }
+                p->fo_final = p->fo_corrente;
             }
         }
-        //TO-DO: Fazer calculo de queda de temperatura.
+        //TO-DO: Testar queda de temperatura.
+        temperatura_corrente *= alfa;
     }
     free(s_temp.itens);
     free(s_temp.mochilas);
