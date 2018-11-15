@@ -24,6 +24,7 @@ Problema *new_problem(char *path){
 		fscanf(problema, "%f", &profit);
 		if(profit < 0) printf("Objeto %d invalido\n", i);
 		p->itens[i].profit = profit;
+		p->itens[i].id_mochila = -1;
 	}
 
 	//Capturando as capacidades das mochilas
