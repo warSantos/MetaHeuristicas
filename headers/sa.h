@@ -3,6 +3,8 @@
 
 #include "../headers/rep.h"
 
+void print_itens (Problema *p);
+
 void constroi_solucao_inicial (Problema *p);
 
 // Simulated annealing.

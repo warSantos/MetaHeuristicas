@@ -89,17 +89,28 @@ void salva_so_temp (Problema *p, S_temporaria s_t){
     }
 }
 
+void print_itens_levados (Problema *p){
+    int i;
+    for (i = 0; i < p->qnt_item; i++){
+        if (p->itens[i].id_mochila != -1){
+            printf ("Item: %d, Profit: %f, Mochila: %d.\n", i, p->itens[i].profit, p->itens[i].id_mochila);
+        }
+    }
+}
+
 void constroi_solucao_inicial (Problema *p){
     
     int i,j;
     // Adicionando elementos com custo 0.
     for (i = 0; i < p->qnt_mochilas; i++){
         for (j = 0; j < p->qnt_item; j++){
-            // Se o elemente não possuir custo para ser levado.
-            if (p->restricoes[i][j] == 0){
+            // Se o elemente não possuir custo para ser levado e ainda não foi levado.
+            printf ("ID_Mochila: %d.\n", p->itens[j].id_mochila);
+            if (p->restricoes[i][j] == 0 && p->itens[j].id_mochila == -1){
                 p->itens[j].id_mochila = i;
                 //p->opt_itens[j].id_mochila = i;
                 p->fo_corrente += p->itens[j].profit;
+                printf ("Restrições: %d %d.\n", i, j);
             }
         }
     }
@@ -123,6 +134,7 @@ void sa (Problema *p, float temperatura_inicial,
     float delta;
     // Gerar solução inicial.
     constroi_solucao_inicial (p);
+    print_itens_levados (p);
     return;
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
