@@ -3,7 +3,11 @@
 
 #include "../headers/rep.h"
 
-void print_itens (Problema *p);
+#define passo(N) printf ("passo: %d.\n", N);
+
+void print_itens_levados (Problema *p, int op);
+
+void print_capacidade_mochilas (Mochila *m, int qnt_mochilas);
 
 void constroi_solucao_inicial (Problema *p);
 

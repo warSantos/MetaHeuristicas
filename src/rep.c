@@ -16,15 +16,19 @@ Problema *new_problem(char *path){
 
 	//Inicializando estruturas
 	p->itens = calloc(p->qnt_item, sizeof(Item));
+	p->opt_itens = calloc(p->qnt_item, sizeof(Item));
 	p->mochilas = calloc(p->qnt_mochilas, sizeof(Mochila));
-
+	p->opt_mochilas = calloc(p->qnt_mochilas, sizeof(Mochila));
+	
 	//Capturando os profits dos objetos
 	for(i = 0; i < p->qnt_item; i++){
 		float profit;
 		fscanf(problema, "%f", &profit);
 		if(profit < 0) printf("Objeto %d invalido\n", i);
 		p->itens[i].profit = profit;
+		p->opt_itens[i].profit = profit;
 		p->itens[i].id_mochila = -1;
+		p->opt_itens[i].id_mochila = -1;
 	}
 
 	//Capturando as capacidades das mochilas
