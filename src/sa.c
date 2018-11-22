@@ -22,6 +22,16 @@ void inserir_probl (Problema *p, int item){
     p->fo_otima = p->fo_corrente += p->itens[item].profit;
 }
 
+void remover_probl (Problema *p, int item){
+    int m;
+    if(p->itens[item].adicionado == -1) return;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        p->mochilas[m].cap_restante += p->restricoes[m][item];
+    }
+    p->itens[item].adicionado = -1;
+    p->fo_otima = p->fo_corrente -= p->itens[item].profit;
+}
+
 int cabe_mochilas(Problema *p, int item){
     int i;
     for(i = 0; i < p->qnt_mochilas; i++){
@@ -57,19 +67,9 @@ void constroi_solucao_gulosa(Problema *p){
             }
         }
     }
-
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
         inserir_probl(p, itens[i]);
     }
-}
-
-void troca_bit (Item *itens, int bit, int adicionado){
-
-    itens[bit].adicionado = adicionado;
-}
-
-void vizinhanca_grasp (){
-
 }
 
 void inserir_item (S_temporaria *s_temp, Problema *p, int item){
@@ -83,13 +83,13 @@ void inserir_item (S_temporaria *s_temp, Problema *p, int item){
 }
 
 void remover_item (S_temporaria *s_temp, Problema *p, int item){
-  int m;
-  if(s_temp->itens[item].adicionado == -1) return;
-  for (m = 0; m < p->qnt_mochilas; m++){
-      s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
-  }
-  s_temp->itens[item].adicionado = -1;
-  s_temp->fo -= s_temp->itens[item].profit;
+    int m;
+    if(s_temp->itens[item].adicionado == -1) return;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
+    }
+    s_temp->itens[item].adicionado = -1;
+    s_temp->fo -= s_temp->itens[item].profit;
 }
 
 int restricao_ferida (S_temporaria p, int qnt_mochilas){
@@ -103,6 +103,18 @@ int restricao_ferida (S_temporaria p, int qnt_mochilas){
         }
     }
     return -1;
+}
+
+float calcula_fo (Item *itens, int qnt_item){
+
+    int i;
+    float fo = 0;
+    for (i = 0; i < qnt_item; i++){
+        if (itens[i].adicionado != -1){
+            fo += itens[i].profit;
+        }
+    }
+    return fo;
 }
 
 float prob_piora (float delta, float temperatura_corrente){
@@ -143,39 +155,86 @@ void salva_so_temp (Problema *p, S_temporaria *s_t){
     }
 }
 
-void constroi_solucao_inicial (Problema *p){
+float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
+    
+    float r;              // numero aleatorio entre ZERO e UM
+    float temperatura;    // temperatura corrente
+    int iter, i;              // numero de iteracoes na temperatura corrente
+    int posicao_escolhida; // objeto escolhido
+    float delta;             // variacao de energia
+    int aceitos, min_aceitos;
+	float fo, fo_viz;
+	
+    temperatura = 2;
+	constroi_solucao_aleatoria (p);
+		   
+    aceitos = 0;
+    min_aceitos = (int) (alfa * SAmax);
+    while (aceitos < min_aceitos){
+		iter = 0;
+		while (iter < SAmax){
+            iter++;
+			fo = p->fo_corrente;
+            int bits[2];
+	
+            bits[0] = ((float)rand()/RAND_MAX) * p->qnt_item;
+            bits[1] = ((float)rand()/RAND_MAX) * p->qnt_item;
+            while (bits[0] == bits[1]) bits[1] = ((float)rand()/RAND_MAX) * p->qnt_item;
 
-    int i,j;
-    // Adicionando elementos com custo 0.
-    for (i = 0; i < p->qnt_mochilas; i++){
-        for (j = 0; j < p->qnt_item; j++){
-            // Se o elemente não possuir custo para ser levado e ainda não foi levado.
-            if (p->restricoes[i][j] == 0 && p->itens[j].adicionado == -1){
-                p->itens[j].adicionado = i;
-                p->fo_corrente += p->itens[j].profit;
+            for (i = 0; i < 2; i++){
+                if (p->itens[bits[i]].adicionado == -1){
+                    inserir_probl (p, bits[i]);
+                }else {
+                    remover_probl (p, bits[i]);
+                }
             }
+
+	  	    /* calcule a variacao de energia */
+            fo_viz = calcula_fo(p->itens, p->qnt_item);
+			delta = fo_viz - fo;
+			
+	  	    /* se houver melhora, aceite o vizinho */
+	        if (delta > 0){
+                aceitos++;
+        	}
+	        else {
+				/* se houver piora, aceite o vizinho com uma determinada
+                 probabilidade */
+	            r = ((float)rand()/RAND_MAX);
+                if (r < exp(delta / temperatura)){
+                    aceitos++;
+                }
+	        }
+            for (i = 0; i < 2; i++){
+                if (p->itens[bits[i]].adicionado == -1){
+                    inserir_probl (p, bits[i]);
+                }else {
+                    remover_probl (p, bits[i]);
+                }
+            }
+		}
+		if (aceitos < min_aceitos){
+            aceitos = 0;
+            temperatura = temperatura * 1.1;
         }
     }
-    p->fo_final = p->fo_corrente;
-    printf ("==========================================================\n");
-    printf ("FO Inicial: %f.\n", p->fo_final);
-    printf ("==========================================================\n");
+    printf("temperatura inicial = %f \n",temperatura);    
+    return temperatura;
 }
 
-void sa (Problema *p, float temperatura_inicial,
-    float temperatura_final, int iter_max, float alfa){
+void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
 
     srand (time(NULL));
     int iteracoes = 0;
     int bit;
-    int i;
+    int i, smax = (p->qnt_item * (p->qnt_item - 1) / 2);
     S_temporaria s_temp;
     s_temp.itens = malloc (sizeof(Item) * p->qnt_item);
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
-    float temperatura_corrente = temperatura_inicial;
+
+    float temperatura_corrente = calcula_temperatura_inicial (p, alfa, smax);
     float delta;
     // Gerar solução inicial.
-    //constroi_solucao_inicial (p);
     constroi_solucao_aleatoria(p);
     print_itens_levados (p, 0);
     // Enquanto o numero de iterações máximo não for atingido.
