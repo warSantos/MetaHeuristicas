@@ -36,8 +36,25 @@ int melhor_mochila (Problema *p, int item){
         }
     }
     // Retorne o id da mochila com menor restrição.
-    
     return id_mochila;
+}
+
+void inserir_item (S_temporaria *s_temp, Problema *p, int item){
+    int m;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
+    }
+    s_temp->itens[item].id_mochila = 1;
+    s_temp->fo += s_temp->itens[item].profit;
+}
+
+void remover_item (S_temporaria *s_temp, Problema *p, int item){
+  int m;
+  for (m = 0; m < p->qnt_mochilas; m++){
+      s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
+  }
+  s_temp->itens[item].id_mochila = 0;
+  s_temp->fo -= s_temp->itens[item].profit;
 }
 
 int restricao_ferida (S_temporaria p, int qnt_mochilas){
@@ -63,36 +80,36 @@ float prob_piora (float delta, float temperatura_corrente){
     return 0;
 }
 
-void inicializa_so_temp (Problema *p, S_temporaria s_t){
+void inicializa_so_temp (Problema *p, S_temporaria *s_t){
 
-    s_t.fo = p->fo_corrente;
+    s_t->fo = p->fo_corrente;
     int i;
     for (i = 0; i < p->qnt_mochilas; i++){
-        s_t.mochilas[i].cap_restante = p->mochilas[i].cap_restante;
-        s_t.mochilas[i].capacidade = p->mochilas[i].capacidade;
+        s_t->mochilas[i].cap_restante = p->mochilas[i].cap_restante;
+        s_t->mochilas[i].capacidade = p->mochilas[i].capacidade;
     }
     for (i = 0; i < p->qnt_item; i++){
-        s_t.itens[i].profit = p->itens[i].profit;
-        s_t.itens[i].id_mochila = p->itens[i].id_mochila;
+        s_t->itens[i].profit = p->itens[i].profit;
+        s_t->itens[i].id_mochila = p->itens[i].id_mochila;
     }
 }
 
-void salva_so_temp (Problema *p, S_temporaria s_t){
-    
-    p->fo_corrente = s_t.fo;
+void salva_so_temp (Problema *p, S_temporaria *s_t){
+
+    p->fo_corrente = s_t->fo;
     int i;
-    for (i = 0; i < p->qnt_mochilas; i++){        
-        p->mochilas[i].cap_restante = s_t.mochilas[i].cap_restante;
-        p->mochilas[i].capacidade = s_t.mochilas[i].capacidade;
+    for (i = 0; i < p->qnt_mochilas; i++){
+        p->mochilas[i].cap_restante = s_t->mochilas[i].cap_restante;
+        p->mochilas[i].capacidade = s_t->mochilas[i].capacidade;
     }
-    for (i = 0; i < p->qnt_item; i++){        
-        p->itens[i].profit = s_t.itens[i].profit;
-        p->itens[i].id_mochila = s_t.itens[i].id_mochila;
+    for (i = 0; i < p->qnt_item; i++){
+        p->itens[i].profit = s_t->itens[i].profit;
+        p->itens[i].id_mochila = s_t->itens[i].id_mochila;
     }
 }
 
 void constroi_solucao_inicial (Problema *p){
-    
+
     int i,j;
     // Adicionando elementos com custo 0.
     for (i = 0; i < p->qnt_mochilas; i++){
@@ -111,9 +128,9 @@ void constroi_solucao_inicial (Problema *p){
     printf ("==========================================================\n");
 }
 
-void sa (Problema *p, float temperatura_inicial, 
+void sa (Problema *p, float temperatura_inicial,
     float temperatura_final, int iter_max, float alfa){
-    
+
     srand (time(NULL));
     int iteracoes = 0;
     int bit;
@@ -127,24 +144,20 @@ void sa (Problema *p, float temperatura_inicial,
     float temperatura_corrente = temperatura_inicial;
     float delta;
     // Gerar solução inicial.
-    constroi_solucao_inicial (p);
+    //constroi_solucao_inicial (p);
     print_itens_levados (p, 0);
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
         // Para uma dada temperatura faça.
         for (iteracoes = 0; iteracoes < iter_max; iteracoes++){
             // Copiando solucao corrente para futura solucao vizinha.
-            inicializa_so_temp (p, s_temp);
+            inicializa_so_temp (p, &s_temp);
             // Escolhendo uma vizinho aleatório.
             //TO-DO: Melhorar função de gerar vizinhança.
             bit = rand () % p->qnt_item;
             //sprintf ("Bit: %d.\n", bit);
-            if (s_temp.itens[bit].id_mochila == -1){                
-                // Adicionando o item na mochila.
-                s_temp.itens[bit].id_mochila = melhor_mochila(p, bit);
-                //printf ("Melhor Mochila: %d.\n", s_temp.itens[bit].id_mochila);
-                s_temp.fo += s_temp.itens[bit].profit;                
-                s_temp.mochilas[s_temp.itens[bit].id_mochila].cap_restante -= p->restricoes[s_temp.itens[bit].id_mochila][bit];                
+            if (s_temp.itens[bit].id_mochila == -1){
+                inserir_item (&s_temp, p, bit);
                 // Enquanto existir mochilas extrapoladas.
                 while (restricao_ferida (s_temp, p->qnt_mochilas) != -1){
                     // Escolhendo uma vizinho aleatório.
@@ -154,28 +167,23 @@ void sa (Problema *p, float temperatura_inicial,
                         // Se o objeto estiver em nenhuma mochila.
                         if (s_temp.itens[bit].id_mochila != -1){
                             // Removendo o item da mochila.
-                            // Adicionando o item na mochila.
-                            s_temp.itens[bit].id_mochila = -1;
-                            s_temp.fo -= s_temp.itens[bit].profit;
-                            s_temp.mochilas[s_temp.itens[bit].id_mochila].cap_restante += p->restricoes[s_temp.itens[bit].id_mochila][bit];
+                            remover_item (&s_temp, p, bit);
                             break;
                         }
                     }
-                }                
+                }
                 delta = s_temp.fo - p->fo_corrente;
                 // TO-DO: Testar solucao probabilidade.
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
-                    salva_so_temp (p, s_temp);
+                    salva_so_temp (p, &s_temp);
                 }
             }else {
-                // Removendo o item da mochila.                
-                s_temp.fo -= s_temp.itens[bit].profit;
-                s_temp.mochilas[s_temp.itens[bit].id_mochila].cap_restante += p->restricoes[s_temp.itens[bit].id_mochila][bit];
-                s_temp.itens[bit].id_mochila = -1;
+                // Removendo o item da mochila.
+                remover_item (&s_temp, p, bit);
                 // TO-DO: Testar solucao probabilidade.
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
-                    salva_so_temp (p, s_temp);
+                    salva_so_temp (p, &s_temp);
                 }
             }// Se a solução atual for melhor que a melhor encontrada até o momento.
             if (p->fo_final < p->fo_corrente){
