@@ -13,6 +13,11 @@
 		float razao;
 	}Item;
 
+	typedef struct {
+		int id_item;
+		float razao;
+	} Razao_item;
+
 	typedef struct{
 		float capacidade;
 		float cap_restante;

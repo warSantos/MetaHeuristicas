@@ -123,7 +123,7 @@ void constroi_solucao_gulosa(Problema *p){
                 itens[j] = aux;
             }
         }
-    }
+    }// Adicionando itens na mochila.
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
         inserir_probl(p, itens[i]);
     }
@@ -153,16 +153,36 @@ float prob_piora (float delta, float temperatura_corrente){
     return 0;
 }
 
-void constroi_array_razoes (Problema *p){
+Razao_item *constroi_array_razoes (Problema *p){
 
     int i,j;
+    Razao_item *razoes = malloc (sizeof (Razao_item) * p->qnt_item);
     for (i = 0; i < p->qnt_item; i++){
         float soma = 0;
         for (j = 0; j < p->qnt_mochilas; j++){
             soma += p->restricoes[j][i];
         }
         p->itens[i].razao = p->itens[i].profit / soma;
+        razoes[i].id_item = i;
+        razoes[i].razao = p->itens[i].razao;
     }
+    Razao_item aux;
+    // Ordenando os items de forma crescente pela razao.
+    for (i = 0; i < p->qnt_item; i++){
+        for (j = 0; j < p->qnt_item; j++){
+            // Se o item i tiver razao menor que o item j.
+            if (razoes[i].razao < razoes[j].razao){
+                // Troque i com j.
+                aux = razoes[i];
+                razoes[i] = razoes[j];
+                razoes[j] = aux;
+            }
+        }
+    }
+    for (i = 0; i < p->qnt_item; i++){
+        printf ("razao %f item: %d.\n", razoes[i].razao, razoes[i].id_item);
+    }
+    return razoes;
 }
 
 float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
@@ -233,21 +253,24 @@ float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
     return temperatura;
 }
 
+/* FUNÇÕES PARA GERAR VIZINHOS */
+
 void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
 
     srand (time(NULL));
     int iteracoes = 0;
-    int bit;
+    int item;
     int i, smax = (p->qnt_item * (p->qnt_item - 1) / 2);
+    float delta;
     S_temporaria s_temp;
     s_temp.itens = malloc (sizeof(Item) * p->qnt_item);
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
-
+    // Calculando temperatura inicial.
     float temperatura_corrente = calcula_temperatura_inicial (p, alfa, smax);
-    float delta;
+    // Construindo array de custo beneficio baseado na razao dos itens.
+    Razao_item *razoes = constroi_array_razoes (p);
     // Gerar solução inicial.
     constroi_solucao_aleatoria(p);
-    print_itens_levados (p, 0);
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
         // Para uma dada temperatura faça.
@@ -255,20 +278,19 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
             // Copiando solucao corrente para futura solucao vizinha.
             inicializa_so_temp (p, &s_temp);
             // Escolhendo uma vizinho aleatório.
-            //TO-DO: Melhorar função de gerar vizinhança.
-            bit = rand () % p->qnt_item;
-            if (s_temp.itens[bit].adicionado == 0){
-                inserir_item (&s_temp, p, bit);
+            item = rand () % p->qnt_item;
+            if (s_temp.itens[item].adicionado == 0){
+                inserir_item (&s_temp, p, item);
                 // Enquanto existir mochilas extrapoladas.
                 while (restricao_ferida (s_temp, p->qnt_mochilas) != -1){
                     // Escolhendo uma vizinho aleatório.
-                    //TO-DO: Melhorar função de gerar vizinhança.
                     while (1){
-                        bit = rand () % p->qnt_item;
+                        //item = rand () % p->qnt_item;
+                        item = vizinho_grasp_reverso (razoes, p->qnt_item, 0.7);
                         // Se o objeto estiver adicioando.
-                        if (s_temp.itens[bit].adicionado == 1){
+                        if (s_temp.itens[item].adicionado == 1){
                             // Removendo o item da mochila.
-                            remover_item (&s_temp, p, bit);
+                            remover_item (&s_temp, p, item);
                             break;
                         }
                     }
@@ -280,7 +302,7 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                 }
             }else {
                 // Removendo o item da mochila.
-                remover_item (&s_temp, p, bit);
+                remover_item (&s_temp, p, item);
                 // TO-DO: Testar solucao probabilidade.
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
@@ -297,15 +319,13 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                 p->fo_final = p->fo_corrente;
             }
         }
-        //TO-DO: Testar queda de temperatura.
         temperatura_corrente *= alfa;
     }
     print_itens_levados (p, 1);
     print_capacidade_mochilas (p->opt_mochilas, p->qnt_mochilas);
     free(s_temp.itens);
     free(s_temp.mochilas);
-    //free(itens_disponiveis);
-    //free(itens_adicionados);
+    free(razoes);
 }
 
 void print_itens_levados (Problema *p, int op){
