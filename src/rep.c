@@ -27,8 +27,8 @@ Problema *new_problem(char *path){
 		if(profit < 0) printf("Objeto %d invalido\n", i);
 		p->itens[i].profit = profit;
 		p->opt_itens[i].profit = profit;
-		p->itens[i].adicionado = -1;
-		p->opt_itens[i].adicionado = -1;
+		p->itens[i].adicionado = 0;
+		p->opt_itens[i].adicionado = 0;
 	}
 
 	//Capturando as capacidades das mochilas
@@ -45,7 +45,7 @@ Problema *new_problem(char *path){
 	for(i = 0; i < p->qnt_mochilas; i++){
 		p->restricoes[i]=calloc(p->qnt_item, sizeof(float));
 		for(j = 0; j < p->qnt_item; j++){
-			float restr; 
+			float restr;
 			fscanf(problema, "%f", &restr);
 			if(restr < 0) 
 				printf("Restricao [%d..%d] invalida\n",i,j);
