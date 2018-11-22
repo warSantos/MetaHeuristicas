@@ -12,6 +12,47 @@ void constroi_array_razoes (Problema *p){
     }
 }
 
+int cabe_mochilas(Problema *p, int item){
+    int i;
+    for(i = 0; i < p->qnt_mochilas; i++){
+        if(p->itens[item].profit > p->mochilas[i].cap_restante){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void constroi_solucao_aleatoria(S_temporaria *s_temp, Problema *p){
+    srand(time(NULL));
+
+    int item = rand() % p->qnt_item;
+    while(cabe_mochilas(p,item)){
+        inserir_item(s_temp, p, item);
+        item = rand() % p->qnt_item;
+    }
+}
+
+void constroi_solucao_gulosa(S_temporaria *s_temp, Problema *p){
+    int i, j, aux;
+    int itens[p->qnt_item];
+    for(i = 0; i < p->qnt_item; itens[i] = i, i++);
+
+    // Ordenando os itens com melhores razões
+    for(i = 0; i < p->qnt_item; i++){
+        for(j = 0; j < p->qnt_item; j++){
+            if(p->itens[itens[i]].razao < p->itens[itens[j]].razao){
+                aux = itens[i];
+                itens[i] = itens[j];
+                itens[j] = aux;
+            }
+        }
+    }
+
+    for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
+        inserir_item(s_temp, p, itens[i]);
+    }
+}
+
 void troca_bit (Item *itens, int bit, int adicionado){
 
     itens[bit].adicionado = adicionado;
@@ -23,6 +64,7 @@ void vizinhanca_grasp (){
 
 void inserir_item (S_temporaria *s_temp, Problema *p, int item){
     int m;
+    if(s_temp->itens[item].adicionado != -1) return;
     for (m = 0; m < p->qnt_mochilas; m++){
         s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
     }
@@ -32,6 +74,7 @@ void inserir_item (S_temporaria *s_temp, Problema *p, int item){
 
 void remover_item (S_temporaria *s_temp, Problema *p, int item){
   int m;
+  if(s_temp->itens[item].adicionado == -1) return;
   for (m = 0; m < p->qnt_mochilas; m++){
       s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
   }
@@ -123,6 +166,7 @@ void sa (Problema *p, float temperatura_inicial,
     float delta;
     // Gerar solução inicial.
     //constroi_solucao_inicial (p);
+    constroi_solucao_aleatoria(&s_temp, p);
     print_itens_levados (p, 0);
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){

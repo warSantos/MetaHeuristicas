@@ -107,7 +107,10 @@ void del_problem(Problema **problem){
 	if(p == NULL){return;}
 
 	free(p->itens);
+	free(p->opt_itens);
+
 	free(p->mochilas);
+	free(p->opt_mochilas);
 
 	int i;
 	for(i = 0; i < p->qnt_mochilas; i++){
