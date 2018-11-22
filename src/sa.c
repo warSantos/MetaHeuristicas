@@ -1,16 +1,36 @@
 #include "../headers/sa.h"
 
-void constroi_array_razoes (Problema *p){
+/* FUNÇÕES PARA CÓPIA DE ESTRUTURAS */
 
-    int i,j;
+void inicializa_so_temp (Problema *p, S_temporaria *s_t){
+
+    s_t->fo = p->fo_corrente;
+    int i;
+    for (i = 0; i < p->qnt_mochilas; i++){
+        s_t->mochilas[i].cap_restante = p->mochilas[i].cap_restante;
+        s_t->mochilas[i].capacidade = p->mochilas[i].capacidade;
+    }
     for (i = 0; i < p->qnt_item; i++){
-        float soma = 0;
-        for (j = 0; j < p->qnt_mochilas; j++){
-            soma += p->restricoes[j][i];
-        }
-        p->itens[i].razao = p->itens[i].profit / soma;
+        s_t->itens[i].profit = p->itens[i].profit;
+        s_t->itens[i].adicionado = p->itens[i].adicionado;
     }
 }
+
+void salva_so_temp (Problema *p, S_temporaria *s_t){
+
+    p->fo_corrente = s_t->fo;
+    int i;
+    for (i = 0; i < p->qnt_mochilas; i++){
+        p->mochilas[i].cap_restante = s_t->mochilas[i].cap_restante;
+        p->mochilas[i].capacidade = s_t->mochilas[i].capacidade;
+    }
+    for (i = 0; i < p->qnt_item; i++){
+        p->itens[i].profit = s_t->itens[i].profit;
+        p->itens[i].adicionado = s_t->itens[i].adicionado;
+    }
+}
+
+/* FUNÇÕES DE MANIPULAÇÃO DE OBJETOS */
 
 void inserir_probl (Problema *p, int item){
     int m;
@@ -32,6 +52,28 @@ void remover_probl (Problema *p, int item){
     p->fo_otima = p->fo_corrente -= p->itens[item].profit;
 }
 
+void inserir_item (S_temporaria *s_temp, Problema *p, int item){
+    int m;
+    if(s_temp->itens[item].adicionado == 1) return;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
+    }
+    s_temp->itens[item].adicionado = 1;
+    s_temp->fo += s_temp->itens[item].profit;
+}
+
+void remover_item (S_temporaria *s_temp, Problema *p, int item){
+    int m;
+    if(s_temp->itens[item].adicionado == 0) return;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
+    }
+    s_temp->itens[item].adicionado = 0;
+    s_temp->fo -= s_temp->itens[item].profit;
+}
+
+/* FUNÇÕES PARA CONTROLE DE RESTRIÇÕES */
+
 int cabe_mochilas(Problema *p, int item){
     int i;
     for(i = 0; i < p->qnt_mochilas; i++){
@@ -41,6 +83,21 @@ int cabe_mochilas(Problema *p, int item){
     }
     return 1;
 }
+
+int restricao_ferida (S_temporaria p, int qnt_mochilas){
+
+    int m;
+    // Para toda mochila.
+    for (m = 0; m < qnt_mochilas; m++){
+        // Se alguma mochila estiver com sua capacidade extrapolada.
+        if (p.mochilas[m].cap_restante < 0){
+            return m;
+        }
+    }
+    return -1;
+}
+
+/* HEURÍSTICAS CONSTRUTIVAS */
 
 void constroi_solucao_aleatoria(Problema *p){
     srand(time(NULL));
@@ -72,38 +129,7 @@ void constroi_solucao_gulosa(Problema *p){
     }
 }
 
-void inserir_item (S_temporaria *s_temp, Problema *p, int item){
-    int m;
-    if(s_temp->itens[item].adicionado == 1) return;
-    for (m = 0; m < p->qnt_mochilas; m++){
-        s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
-    }
-    s_temp->itens[item].adicionado = 1;
-    s_temp->fo += s_temp->itens[item].profit;
-}
-
-void remover_item (S_temporaria *s_temp, Problema *p, int item){
-    int m;
-    if(s_temp->itens[item].adicionado == 0) return;
-    for (m = 0; m < p->qnt_mochilas; m++){
-        s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
-    }
-    s_temp->itens[item].adicionado = 0;
-    s_temp->fo -= s_temp->itens[item].profit;
-}
-
-int restricao_ferida (S_temporaria p, int qnt_mochilas){
-
-    int m;
-    // Para toda mochila.
-    for (m = 0; m < qnt_mochilas; m++){
-        // Se alguma mochila estiver com sua capacidade extrapolada.
-        if (p.mochilas[m].cap_restante < 0){
-            return m;
-        }
-    }
-    return -1;
-}
+/* FUNÇÕES DO ÂMBITO DO PROBLEMA */
 
 float calcula_fo (Item *itens, int qnt_item){
 
@@ -127,31 +153,15 @@ float prob_piora (float delta, float temperatura_corrente){
     return 0;
 }
 
-void inicializa_so_temp (Problema *p, S_temporaria *s_t){
+void constroi_array_razoes (Problema *p){
 
-    s_t->fo = p->fo_corrente;
-    int i;
-    for (i = 0; i < p->qnt_mochilas; i++){
-        s_t->mochilas[i].cap_restante = p->mochilas[i].cap_restante;
-        s_t->mochilas[i].capacidade = p->mochilas[i].capacidade;
-    }
+    int i,j;
     for (i = 0; i < p->qnt_item; i++){
-        s_t->itens[i].profit = p->itens[i].profit;
-        s_t->itens[i].adicionado = p->itens[i].adicionado;
-    }
-}
-
-void salva_so_temp (Problema *p, S_temporaria *s_t){
-
-    p->fo_corrente = s_t->fo;
-    int i;
-    for (i = 0; i < p->qnt_mochilas; i++){
-        p->mochilas[i].cap_restante = s_t->mochilas[i].cap_restante;
-        p->mochilas[i].capacidade = s_t->mochilas[i].capacidade;
-    }
-    for (i = 0; i < p->qnt_item; i++){
-        p->itens[i].profit = s_t->itens[i].profit;
-        p->itens[i].adicionado = s_t->itens[i].adicionado;
+        float soma = 0;
+        for (j = 0; j < p->qnt_mochilas; j++){
+            soma += p->restricoes[j][i];
+        }
+        p->itens[i].razao = p->itens[i].profit / soma;
     }
 }
 
