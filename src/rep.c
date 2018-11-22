@@ -27,8 +27,8 @@ Problema *new_problem(char *path){
 		if(profit < 0) printf("Objeto %d invalido\n", i);
 		p->itens[i].profit = profit;
 		p->opt_itens[i].profit = profit;
-		p->itens[i].id_mochila = -1;
-		p->opt_itens[i].id_mochila = -1;
+		p->itens[i].adicionado = -1;
+		p->opt_itens[i].adicionado = -1;
 	}
 
 	//Capturando as capacidades das mochilas

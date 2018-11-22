@@ -1,42 +1,24 @@
 #include "../headers/sa.h"
 
-Razao *constroi_array_razoes (Problema *p){
+void constroi_array_razoes (Problema *p){
 
-    Razao *razoes = malloc (sizeof(Razao) * (p->qnt_item * p->qnt_mochilas));
     int i,j;
-    // Para toda mochila i.
-    for (i = 0; i < p->qnt_mochilas; i++){
-        // Para todo iten j.
-        for (j = 0; j < p->qnt_item; j++){
-            razoes[(i + 1) * j].razao = p->restricoes[i][j];
-            razoes[(i + 1) * j].id_mochila = i;
+    for (i = 0; i < p->qnt_item; i++){
+        float soma = 0;
+        for (j = 0; j < p->qnt_mochilas; j++){
+            soma += p->restricoes[j][i];
         }
+        p->itens[i].razao = p->itens[i].profit / soma;
     }
-    return razoes;
 }
 
-void troca_bit (Item *itens, int bit, int id_mochila){
+void troca_bit (Item *itens, int bit, int adicionado){
 
-    itens[bit].id_mochila = id_mochila;
+    itens[bit].adicionado = adicionado;
 }
 
 void vizinhanca_grasp (){
 
-}
-
-int melhor_mochila (Problema *p, int item){
-
-    int m, id_mochila = 0;
-    float restricao = p->restricoes[0][item];
-    // Para toda restricao existente ache a melhor.
-    for (m = 0; m < p->qnt_mochilas; ++m){
-        if (p->restricoes[m][item] < restricao){
-            restricao = p->restricoes[m][item];
-            id_mochila = m;
-        }
-    }
-    // Retorne o id da mochila com menor restrição.
-    return id_mochila;
 }
 
 void inserir_item (S_temporaria *s_temp, Problema *p, int item){
@@ -44,7 +26,7 @@ void inserir_item (S_temporaria *s_temp, Problema *p, int item){
     for (m = 0; m < p->qnt_mochilas; m++){
         s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
     }
-    s_temp->itens[item].id_mochila = 1;
+    s_temp->itens[item].adicionado = 1;
     s_temp->fo += s_temp->itens[item].profit;
 }
 
@@ -53,7 +35,7 @@ void remover_item (S_temporaria *s_temp, Problema *p, int item){
   for (m = 0; m < p->qnt_mochilas; m++){
       s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
   }
-  s_temp->itens[item].id_mochila = 0;
+  s_temp->itens[item].adicionado = -1;
   s_temp->fo -= s_temp->itens[item].profit;
 }
 
@@ -90,7 +72,7 @@ void inicializa_so_temp (Problema *p, S_temporaria *s_t){
     }
     for (i = 0; i < p->qnt_item; i++){
         s_t->itens[i].profit = p->itens[i].profit;
-        s_t->itens[i].id_mochila = p->itens[i].id_mochila;
+        s_t->itens[i].adicionado = p->itens[i].adicionado;
     }
 }
 
@@ -104,7 +86,7 @@ void salva_so_temp (Problema *p, S_temporaria *s_t){
     }
     for (i = 0; i < p->qnt_item; i++){
         p->itens[i].profit = s_t->itens[i].profit;
-        p->itens[i].id_mochila = s_t->itens[i].id_mochila;
+        p->itens[i].adicionado = s_t->itens[i].adicionado;
     }
 }
 
@@ -115,9 +97,8 @@ void constroi_solucao_inicial (Problema *p){
     for (i = 0; i < p->qnt_mochilas; i++){
         for (j = 0; j < p->qnt_item; j++){
             // Se o elemente não possuir custo para ser levado e ainda não foi levado.
-            if (p->restricoes[i][j] == 0 && p->itens[j].id_mochila == -1){
-                p->itens[j].id_mochila = i;
-                //p->opt_itens[j].id_mochila = i;
+            if (p->restricoes[i][j] == 0 && p->itens[j].adicionado == -1){
+                p->itens[j].adicionado = i;
                 p->fo_corrente += p->itens[j].profit;
             }
         }
@@ -138,9 +119,6 @@ void sa (Problema *p, float temperatura_inicial,
     S_temporaria s_temp;
     s_temp.itens = malloc (sizeof(Item) * p->qnt_item);
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
-    //int itens_disponiveis = calloc (p->qnt_item, sizeof(int));
-    //int itens_adicionados = calloc (p->qnt_item, sizeof(int));
-    //int ultimo_adicionado = 0;
     float temperatura_corrente = temperatura_inicial;
     float delta;
     // Gerar solução inicial.
@@ -155,8 +133,7 @@ void sa (Problema *p, float temperatura_inicial,
             // Escolhendo uma vizinho aleatório.
             //TO-DO: Melhorar função de gerar vizinhança.
             bit = rand () % p->qnt_item;
-            //sprintf ("Bit: %d.\n", bit);
-            if (s_temp.itens[bit].id_mochila == -1){
+            if (s_temp.itens[bit].adicionado == -1){
                 inserir_item (&s_temp, p, bit);
                 // Enquanto existir mochilas extrapoladas.
                 while (restricao_ferida (s_temp, p->qnt_mochilas) != -1){
@@ -165,7 +142,7 @@ void sa (Problema *p, float temperatura_inicial,
                     while (1){
                         bit = rand () % p->qnt_item;
                         // Se o objeto estiver em nenhuma mochila.
-                        if (s_temp.itens[bit].id_mochila != -1){
+                        if (s_temp.itens[bit].adicionado != -1){
                             // Removendo o item da mochila.
                             remover_item (&s_temp, p, bit);
                             break;
@@ -191,7 +168,7 @@ void sa (Problema *p, float temperatura_inicial,
                     p->opt_mochilas[i].cap_restante = p->mochilas[i].cap_restante;
                 }
                 for (i = 0; i < p->qnt_item; i++){
-                    p->opt_itens[i].id_mochila = p->itens[i].id_mochila;
+                    p->opt_itens[i].adicionado = p->itens[i].adicionado;
                 }
                 p->fo_final = p->fo_corrente;
             }
@@ -214,24 +191,22 @@ void print_itens_levados (Problema *p, int op){
         printf ("Itens Levados.\n");
         int i;
         for (i = 0; i < p->qnt_item; i++){
-            if (p->itens[i].id_mochila != -1){
+            if (p->itens[i].adicionado != -1){
                 printf ("Item: %d, Profit: %f, Mochila: %d, Restricao: %f.\n",
-                    i, p->itens[i].profit, p->itens[i].id_mochila, p->restricoes[p->itens[i].id_mochila][i]);
+                    i, p->itens[i].profit, p->itens[i].adicionado, p->restricoes[p->itens[i].adicionado][i]);
                     fo += p->itens[i].profit;
             }
         }
-        //printf ("FO: %f.\n", p->fo_final);
     }else{
         printf ("Itens Levados (Resultado Final).\n");
         int i;
         for (i = 0; i < p->qnt_item; i++){
-            if (p->opt_itens[i].id_mochila != -1){
+            if (p->opt_itens[i].adicionado != -1){
                 printf ("Item: %d, Profit: %f, Mochila: %d, Restricao: %f..\n",
-                    i, p->opt_itens[i].profit, p->opt_itens[i].id_mochila, p->restricoes[p->opt_itens[i].id_mochila][i]);
+                    i, p->opt_itens[i].profit, p->opt_itens[i].adicionado, p->restricoes[p->opt_itens[i].adicionado][i]);
                     fo += p->opt_itens[i].profit;
             }
         }
-        //printf ("FO: %f.\n", p->fo_final);
     }
     printf ("FO: %f.\n", fo);
     printf ("==========================================================\n");

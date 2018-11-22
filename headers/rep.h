@@ -9,7 +9,8 @@
 	/* Definição das estruturas de modelagem */
 	typedef struct{
 		float profit; //Peso do objeto.
-		int id_mochila; //-1 se não estiver em nenhuma mochila.
+		int adicionado; //-1 se não estiver em nenhuma mochila.
+		float razao;
 	}Item;
 
 	typedef struct{
@@ -36,18 +37,11 @@
 		float fo_otima;
 	}Problema;
 
-	typedef struct razao {
-		float razao;
-		int id_mochila;
-	} Razao;
-
 	/* Funções do programa */
 	Problema* new_problem(char *path);
 
 	void print_problem(Problema *problema);
 
 	void del_problem(Problema **problema);
-
-
 
 #endif
