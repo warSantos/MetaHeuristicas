@@ -12,27 +12,37 @@ void constroi_array_razoes (Problema *p){
     }
 }
 
+void inserir_probl (Problema *p, int item){
+    int m;
+    if(p->itens[item].adicionado != -1) return;
+    for (m = 0; m < p->qnt_mochilas; m++){
+        p->mochilas[m].cap_restante -= p->restricoes[m][item];
+    }
+    p->itens[item].adicionado = 1;
+    p->fo_otima = p->fo_corrente += p->itens[item].profit;
+}
+
 int cabe_mochilas(Problema *p, int item){
     int i;
     for(i = 0; i < p->qnt_mochilas; i++){
-        if(p->itens[item].profit > p->mochilas[i].cap_restante){
+        if(p->restricoes[i][item] > p->mochilas[i].cap_restante){
             return 0;
         }
     }
     return 1;
 }
 
-void constroi_solucao_aleatoria(S_temporaria *s_temp, Problema *p){
+void constroi_solucao_aleatoria(Problema *p){
     srand(time(NULL));
 
     int item = rand() % p->qnt_item;
     while(cabe_mochilas(p,item)){
-        inserir_item(s_temp, p, item);
+        inserir_probl(p, item);
         item = rand() % p->qnt_item;
     }
 }
 
-void constroi_solucao_gulosa(S_temporaria *s_temp, Problema *p){
+void constroi_solucao_gulosa(Problema *p){
     int i, j, aux;
     int itens[p->qnt_item];
     for(i = 0; i < p->qnt_item; itens[i] = i, i++);
@@ -49,7 +59,7 @@ void constroi_solucao_gulosa(S_temporaria *s_temp, Problema *p){
     }
 
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
-        inserir_item(s_temp, p, itens[i]);
+        inserir_probl(p, itens[i]);
     }
 }
 
@@ -166,7 +176,7 @@ void sa (Problema *p, float temperatura_inicial,
     float delta;
     // Gerar solução inicial.
     //constroi_solucao_inicial (p);
-    constroi_solucao_aleatoria(&s_temp, p);
+    constroi_solucao_aleatoria(p);
     print_itens_levados (p, 0);
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
