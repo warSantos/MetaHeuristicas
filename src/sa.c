@@ -109,11 +109,11 @@ void constroi_solucao_aleatoria(Problema *p){
     }
 }
 
-void constroi_solucao_gulosa(Problema *p){
+void constroi_solucao_gulosa(Problema *p, Razao_item *razoes){
     int i, j, aux;
-    int itens[p->qnt_item];
-    for(i = 0; i < p->qnt_item; itens[i] = i, i++);
-
+    //int itens[p->qnt_item];
+    //for(i = 0; i < p->qnt_item; itens[i] = i, i++);
+    /*
     // Ordenando os itens com melhores razões
     for(i = 0; i < p->qnt_item; i++){
         for(j = 0; j < p->qnt_item; j++){
@@ -123,9 +123,17 @@ void constroi_solucao_gulosa(Problema *p){
                 itens[j] = aux;
             }
         }
-    }// Adicionando itens na mochila.
+    }
+    */
+    ordena_razoes_asc (razoes, p->qnt_item);
+    /*
+    // Adicionando itens na mochila.
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
         inserir_probl(p, itens[i]);
+    }
+    */
+    for(i = 0; i < p->qnt_item && cabe_mochilas(p, razoes[i].id_item); i++){
+        inserir_probl(p, razoes[i].id_item);
     }
 }
 
@@ -162,14 +170,19 @@ Razao_item *constroi_array_razoes (Problema *p){
         for (j = 0; j < p->qnt_mochilas; j++){
             soma += p->restricoes[j][i];
         }
-        p->itens[i].razao = p->itens[i].profit / soma;
-        razoes[i].id_item = i;
-        razoes[i].razao = p->itens[i].razao;
-    }
+        razoes[i].razao = p->itens[i].profit / soma;
+        razoes[i].id_item = i;        
+    }    
+    return razoes;
+}
+
+void ordena_razoes_asc (Razao_item *razoes, int qnt_item){
+    
+    int i,j;
     Razao_item aux;
     // Ordenando os items de forma crescente pela razao.
-    for (i = 0; i < p->qnt_item; i++){
-        for (j = 0; j < p->qnt_item; j++){
+    for (i = 0; i < qnt_item; i++){
+        for (j = 0; j < qnt_item; j++){
             // Se o item i tiver razao menor que o item j.
             if (razoes[i].razao < razoes[j].razao){
                 // Troque i com j.
@@ -179,10 +192,24 @@ Razao_item *constroi_array_razoes (Problema *p){
             }
         }
     }
-    for (i = 0; i < p->qnt_item; i++){
-        printf ("razao %f item: %d.\n", razoes[i].razao, razoes[i].id_item);
+}
+
+void ordena_razoes_desc (Razao_item *razoes, int qnt_item){
+    
+    int i,j;
+    Razao_item aux;
+    // Ordenando os items de forma decrescente pela razao.
+    for (i = 0; i < qnt_item; i++){
+        for (j = 0; j < qnt_item; j++){
+            // Se o item i tiver razao menor que o item j.
+            if (razoes[i].razao > razoes[j].razao){
+                // Troque i com j.
+                aux = razoes[i];
+                razoes[i] = razoes[j];
+                razoes[j] = aux;
+            }
+        }
     }
-    return razoes;
 }
 
 float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
@@ -255,6 +282,33 @@ float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
 
 /* FUNÇÕES PARA GERAR VIZINHOS */
 
+float max (float v1, float v2){
+    if (v1 < v2){
+        return v2;
+    }
+    return v1;
+}
+
+int vizinho_grasp (Razao_item *razoes, int qnt_item, float alfa){
+    
+    int item, limite;
+    int tam_janela = (int) qnt_item * max (alfa, 0.95);
+    for (limite = 0; limite < tam_janela; limite++);
+    // Sorteando elemento no espaço da janela.
+    item = rand() % limite;
+    return razoes[item].id_item;
+}
+
+int vizinho_grasp_reverso (Razao_item *razoes, int qnt_item, float alfa){
+
+    int item, limite;
+    int tam_janela = (int) qnt_item * max (alfa, 0.90);
+    for (limite = 0; limite < tam_janela; limite++);
+    // Sorteando elemento no espaço da janela.
+    item = rand() % limite;
+    return razoes[item].id_item;
+}
+
 void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
 
     srand (time(NULL));
@@ -267,10 +321,12 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
     // Calculando temperatura inicial.
     float temperatura_corrente = calcula_temperatura_inicial (p, alfa, smax);
-    // Construindo array de custo beneficio baseado na razao dos itens.
-    Razao_item *razoes = constroi_array_razoes (p);
-    // Gerar solução inicial.
-    constroi_solucao_aleatoria(p);
+    float t_bkp = temperatura_corrente;
+    // Construindo arrays de custo beneficio baseado na razao dos itens.
+    Razao_item *razoes_asc = constroi_array_razoes (p);
+    ordena_razoes_asc (razoes_asc, p->qnt_item);
+    Razao_item *razoes_desc = constroi_array_razoes (p);
+    ordena_razoes_desc (razoes_desc, p->qnt_item);
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
         // Para uma dada temperatura faça.
@@ -279,14 +335,15 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
             inicializa_so_temp (p, &s_temp);
             // Escolhendo uma vizinho aleatório.
             item = rand () % p->qnt_item;
+            //item = vizinho_grasp (razoes_desc, p->qnt_item, temperatura_corrente / t_bkp);
             if (s_temp.itens[item].adicionado == 0){
                 inserir_item (&s_temp, p, item);
                 // Enquanto existir mochilas extrapoladas.
                 while (restricao_ferida (s_temp, p->qnt_mochilas) != -1){
                     // Escolhendo uma vizinho aleatório.
                     while (1){
-                        //item = rand () % p->qnt_item;
-                        item = vizinho_grasp_reverso (razoes, p->qnt_item, 0.7);
+                        item = rand () % p->qnt_item;
+                        //item = vizinho_grasp_reverso (razoes_asc, p->qnt_item, temperatura_corrente / t_bkp);
                         // Se o objeto estiver adicioando.
                         if (s_temp.itens[item].adicionado == 1){
                             // Removendo o item da mochila.
@@ -325,7 +382,8 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
     print_capacidade_mochilas (p->opt_mochilas, p->qnt_mochilas);
     free(s_temp.itens);
     free(s_temp.mochilas);
-    free(razoes);
+    free(razoes_asc);
+    free(razoes_desc);
 }
 
 void print_itens_levados (Problema *p, int op){

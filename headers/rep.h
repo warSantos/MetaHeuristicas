@@ -10,7 +10,6 @@
 	typedef struct{
 		float profit; //Peso do objeto.
 		int adicionado; //-1 se não estiver em nenhuma mochila.
-		float razao;
 	}Item;
 
 	typedef struct {
@@ -48,5 +47,9 @@
 	void print_problem(Problema *problema);
 
 	void del_problem(Problema **problema);
+
+	void ordena_razoes_asc (Razao_item *razoes, int qnt_item);
+
+	void ordena_razoes_desc (Razao_item *razoes, int qnt_item);
 
 #endif
