@@ -99,8 +99,7 @@ int restricao_ferida (S_temporaria p, int qnt_mochilas){
 
 /* HEURÍSTICAS CONSTRUTIVAS */
 
-void constroi_solucao_aleatoria(Problema *p){
-    srand(time(NULL));
+void constroi_solucao_aleatoria(Problema *p){    
 
     int item = rand() % p->qnt_item;
     while(cabe_mochilas(p,item)){
@@ -111,27 +110,7 @@ void constroi_solucao_aleatoria(Problema *p){
 
 void constroi_solucao_gulosa(Problema *p, Razao_item *razoes){
     int i, j, aux;
-    //int itens[p->qnt_item];
-    //for(i = 0; i < p->qnt_item; itens[i] = i, i++);
-    /*
-    // Ordenando os itens com melhores razões
-    for(i = 0; i < p->qnt_item; i++){
-        for(j = 0; j < p->qnt_item; j++){
-            if(p->itens[itens[i]].razao < p->itens[itens[j]].razao){
-                aux = itens[i];
-                itens[i] = itens[j];
-                itens[j] = aux;
-            }
-        }
-    }
-    */
     ordena_razoes_asc (razoes, p->qnt_item);
-    /*
-    // Adicionando itens na mochila.
-    for(i = 0; i < p->qnt_item && cabe_mochilas(p, itens[i]); i++){
-        inserir_probl(p, itens[i]);
-    }
-    */
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, razoes[i].id_item); i++){
         inserir_probl(p, razoes[i].id_item);
     }
@@ -192,6 +171,9 @@ void ordena_razoes_asc (Razao_item *razoes, int qnt_item){
             }
         }
     }
+    for (i = 0; i < qnt_item; i++){
+        printf ("item: %d razao: %f.\n", i, razoes[i].razao);
+    }
 }
 
 void ordena_razoes_desc (Razao_item *razoes, int qnt_item){
@@ -212,7 +194,7 @@ void ordena_razoes_desc (Razao_item *razoes, int qnt_item){
     }
 }
 
-float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
+float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, int SAmax){
     
     // numero aleatorio entre ZERO e UM
     float r;
@@ -229,7 +211,8 @@ float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
 	float fo, fo_viz;
     temperatura = 2;
     // Construindo solução viável aleatória.
-	constroi_solucao_aleatoria (p);
+	//constroi_solucao_aleatoria (p);
+    constroi_solucao_gulosa (p, razoes);
     while (aceitos < min_aceitos){
 		iter = 0;
 		while (iter < SAmax){
@@ -277,6 +260,7 @@ float calcula_temperatura_inicial(Problema *p, float alfa, int SAmax){
         }
     }
     printf("temperatura inicial = %f \n",temperatura);    
+    //temperatura += 200;
     return temperatura;
 }
 
@@ -309,9 +293,33 @@ int vizinho_grasp_reverso (Razao_item *razoes, int qnt_item, float alfa){
     return razoes[item].id_item;
 }
 
+void busca_local (Razao_item *razoes, Problema *p, S_temporaria *s_t){
+    int i, id_item = -1; // id do item temporário.
+    float r_temp; // razão temporária.
+    while (restricao_ferida (*s_t, p->qnt_mochilas) != -1){
+        r_temp = -1;
+        id_item = -1;
+        // Iterando sobre a razão os itens e procurando o melhor vizinho ainda
+        // não adicionado.
+        for (i = 0; i < p->qnt_item; i++){
+            if (!s_t->itens[i].adicionado && razoes[i].razao > r_temp){
+                r_temp = razoes[i].razao;
+                id_item = i;
+            }
+        }
+        // Inserindo item na mochila.
+        if (id_item > -1){
+            inserir_item (s_t, p, id_item);
+        }
+    }
+    // Corrijingo capacidade da mochila.
+    if (id_item > -1){
+        remover_item (s_t, p, id_item);
+    }
+}
+
 void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
 
-    srand (time(NULL));
     int iteracoes = 0;
     int item;
     int i, smax = (p->qnt_item * (p->qnt_item - 1) / 2);
@@ -319,14 +327,17 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
     S_temporaria s_temp;
     s_temp.itens = malloc (sizeof(Item) * p->qnt_item);
     s_temp.mochilas = malloc (sizeof(Mochila) * p->qnt_mochilas);
-    // Calculando temperatura inicial.
-    float temperatura_corrente = calcula_temperatura_inicial (p, alfa, smax);
-    float t_bkp = temperatura_corrente;
+    
     // Construindo arrays de custo beneficio baseado na razao dos itens.
     Razao_item *razoes_asc = constroi_array_razoes (p);
     ordena_razoes_asc (razoes_asc, p->qnt_item);
     Razao_item *razoes_desc = constroi_array_razoes (p);
     ordena_razoes_desc (razoes_desc, p->qnt_item);
+    
+    // Calculando temperatura inicial.
+    float temperatura_corrente = calcula_temperatura_inicial (p, razoes_asc, alfa, smax);
+    float t_bkp = temperatura_corrente;
+    
     // Enquanto o numero de iterações máximo não for atingido.
     while (temperatura_corrente > temperatura_final){
         // Para uma dada temperatura faça.
@@ -353,19 +364,20 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                     }
                 }
                 delta = s_temp.fo - p->fo_corrente;
-                // TO-DO: Testar solucao probabilidade.
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
                 }
             }else {
                 // Removendo o item da mochila.
                 remover_item (&s_temp, p, item);
-                // TO-DO: Testar solucao probabilidade.
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
                 }
-            }// Se a solução atual for melhor que a melhor encontrada até o momento.
+            }
+            // Aplicando busca local.
+            busca_local (razoes_asc, p, &s_temp);
+            // Se a solução atual for melhor que a melhor encontrada até o momento.
             if (p->fo_final < p->fo_corrente){
                 for (i = 0; i < p->qnt_mochilas; ++i){
                     p->opt_mochilas[i].cap_restante = p->mochilas[i].cap_restante;

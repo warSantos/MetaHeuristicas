@@ -5,6 +5,8 @@
 	#include <stdlib.h>
 	#include <time.h>
 	#include <math.h>
+	#include <sys/types.h>
+    #include <unistd.h>
 
 	/* Definição das estruturas de modelagem */
 	typedef struct{
