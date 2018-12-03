@@ -1,5 +1,6 @@
 CC=gcc
-FLAGS=-g -Wall -c
+#FLAGS=-g -Wall -c
+FLAGS=-c -O2
 
 main:	rep.o	sa.o	main.c
 	gcc main.c rep.o sa.o -o main.out -lm

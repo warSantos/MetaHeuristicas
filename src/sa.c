@@ -171,27 +171,6 @@ void ordena_razoes_asc (Razao_item *razoes, int qnt_item){
             }
         }
     }
-    for (i = 0; i < qnt_item; i++){
-        printf ("item: %d razao: %f.\n", i, razoes[i].razao);
-    }
-}
-
-void ordena_razoes_desc (Razao_item *razoes, int qnt_item){
-    
-    int i,j;
-    Razao_item aux;
-    // Ordenando os items de forma decrescente pela razao.
-    for (i = 0; i < qnt_item; i++){
-        for (j = 0; j < qnt_item; j++){
-            // Se o item i tiver razao menor que o item j.
-            if (razoes[i].razao > razoes[j].razao){
-                // Troque i com j.
-                aux = razoes[i];
-                razoes[i] = razoes[j];
-                razoes[j] = aux;
-            }
-        }
-    }
 }
 
 float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, int SAmax){
@@ -211,8 +190,8 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
 	float fo, fo_viz;
     temperatura = 2;
     // Construindo solução viável aleatória.
-	//constroi_solucao_aleatoria (p);
-    constroi_solucao_gulosa (p, razoes);
+	constroi_solucao_aleatoria (p);
+    //constroi_solucao_gulosa (p, razoes);
     while (aceitos < min_aceitos){
 		iter = 0;
 		while (iter < SAmax){
@@ -256,11 +235,9 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
 		}
 		if (aceitos < min_aceitos){
             aceitos = 0;
-            temperatura = temperatura * 1.1;
+            temperatura = temperatura * 1.25;
         }
     }
-    printf("temperatura inicial = %f \n",temperatura);    
-    //temperatura += 200;
     return temperatura;
 }
 
@@ -271,26 +248,6 @@ float max (float v1, float v2){
         return v2;
     }
     return v1;
-}
-
-int vizinho_grasp (Razao_item *razoes, int qnt_item, float alfa){
-    
-    int item, limite;
-    int tam_janela = (int) qnt_item * max (alfa, 0.95);
-    for (limite = 0; limite < tam_janela; limite++);
-    // Sorteando elemento no espaço da janela.
-    item = rand() % limite;
-    return razoes[item].id_item;
-}
-
-int vizinho_grasp_reverso (Razao_item *razoes, int qnt_item, float alfa){
-
-    int item, limite;
-    int tam_janela = (int) qnt_item * max (alfa, 0.90);
-    for (limite = 0; limite < tam_janela; limite++);
-    // Sorteando elemento no espaço da janela.
-    item = rand() % limite;
-    return razoes[item].id_item;
 }
 
 void busca_local (Razao_item *razoes, Problema *p, S_temporaria *s_t){
@@ -331,22 +288,18 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
     // Construindo arrays de custo beneficio baseado na razao dos itens.
     Razao_item *razoes_asc = constroi_array_razoes (p);
     ordena_razoes_asc (razoes_asc, p->qnt_item);
-    Razao_item *razoes_desc = constroi_array_razoes (p);
-    ordena_razoes_desc (razoes_desc, p->qnt_item);
     
     // Calculando temperatura inicial.
     float temperatura_corrente = calcula_temperatura_inicial (p, razoes_asc, alfa, smax);
-    float t_bkp = temperatura_corrente;
     
     // Enquanto o numero de iterações máximo não for atingido.
-    while (temperatura_corrente > temperatura_final){
+    while (temperatura_corrente > temperatura_final){        
         // Para uma dada temperatura faça.
         for (iteracoes = 0; iteracoes < iter_max; iteracoes++){
             // Copiando solucao corrente para futura solucao vizinha.
             inicializa_so_temp (p, &s_temp);
             // Escolhendo uma vizinho aleatório.
             item = rand () % p->qnt_item;
-            //item = vizinho_grasp (razoes_desc, p->qnt_item, temperatura_corrente / t_bkp);
             if (s_temp.itens[item].adicionado == 0){
                 inserir_item (&s_temp, p, item);
                 // Enquanto existir mochilas extrapoladas.
@@ -354,7 +307,6 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                     // Escolhendo uma vizinho aleatório.
                     while (1){
                         item = rand () % p->qnt_item;
-                        //item = vizinho_grasp_reverso (razoes_asc, p->qnt_item, temperatura_corrente / t_bkp);
                         // Se o objeto estiver adicioando.
                         if (s_temp.itens[item].adicionado == 1){
                             // Removendo o item da mochila.
@@ -363,6 +315,8 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                         }
                     }
                 }
+                // Aplicando busca local.
+                //busca_local (razoes_asc, p, &s_temp);
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
@@ -370,13 +324,13 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
             }else {
                 // Removendo o item da mochila.
                 remover_item (&s_temp, p, item);
+                // Aplicando busca local.
+                //busca_local (razoes_asc, p, &s_temp);
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
                 }
             }
-            // Aplicando busca local.
-            busca_local (razoes_asc, p, &s_temp);
             // Se a solução atual for melhor que a melhor encontrada até o momento.
             if (p->fo_final < p->fo_corrente){
                 for (i = 0; i < p->qnt_mochilas; ++i){
@@ -395,7 +349,6 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
     free(s_temp.itens);
     free(s_temp.mochilas);
     free(razoes_asc);
-    free(razoes_desc);
 }
 
 void print_itens_levados (Problema *p, int op){
