@@ -235,7 +235,7 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
 		}
 		if (aceitos < min_aceitos){
             aceitos = 0;
-            temperatura = temperatura * 1.25;
+            temperatura = temperatura * 1.1;
         }
     }
     return temperatura;
@@ -316,7 +316,7 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
                     }
                 }
                 // Aplicando busca local.
-                //busca_local (razoes_asc, p, &s_temp);
+                busca_local (razoes_asc, p, &s_temp);
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
@@ -324,8 +324,6 @@ void sa (Problema *p, float temperatura_final, int iter_max, float alfa){
             }else {
                 // Removendo o item da mochila.
                 remover_item (&s_temp, p, item);
-                // Aplicando busca local.
-                //busca_local (razoes_asc, p, &s_temp);
                 delta = s_temp.fo - p->fo_corrente;
                 if (delta >= 0 || prob_piora (delta, temperatura_corrente)){
                     salva_so_temp (p, &s_temp);
