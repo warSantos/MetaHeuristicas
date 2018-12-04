@@ -99,7 +99,7 @@ int restricao_ferida (S_temporaria p, int qnt_mochilas){
 
 /* HEURÍSTICAS CONSTRUTIVAS */
 
-void constroi_solucao_aleatoria(Problema *p){    
+void constroi_solucao_aleatoria(Problema *p){
 
     int item = rand() % p->qnt_item;
     while(cabe_mochilas(p,item)){
@@ -191,14 +191,13 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
     temperatura = 2;
     // Construindo solução viável aleatória.
 	constroi_solucao_aleatoria (p);
-    //constroi_solucao_gulosa (p, razoes);
     while (aceitos < min_aceitos){
 		iter = 0;
 		while (iter < SAmax){
             iter++;
 			fo = p->fo_corrente;
             int bits[2];
-	
+            
             bits[0] = ((float)rand()/RAND_MAX) * p->qnt_item;
             bits[1] = ((float)rand()/RAND_MAX) * p->qnt_item;
             while (bits[0] == bits[1]) bits[1] = ((float)rand()/RAND_MAX) * p->qnt_item;
@@ -242,13 +241,6 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
 }
 
 /* FUNÇÕES PARA GERAR VIZINHOS */
-
-float max (float v1, float v2){
-    if (v1 < v2){
-        return v2;
-    }
-    return v1;
-}
 
 void busca_local (Razao_item *razoes, Problema *p, S_temporaria *s_t){
     int i, id_item = -1; // id do item temporário.
