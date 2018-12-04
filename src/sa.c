@@ -3,27 +3,31 @@
 /* FUNÇÕES PARA CÓPIA DE ESTRUTURAS */
 
 void inicializa_so_temp (Problema *p, S_temporaria *s_t){
-
+    // Copiar FO corrente para FO temporária.
     s_t->fo = p->fo_corrente;
     int i;
     for (i = 0; i < p->qnt_mochilas; i++){
+        // Copiar estrutura da mochilas para solução temporária.
         s_t->mochilas[i].cap_restante = p->mochilas[i].cap_restante;
         s_t->mochilas[i].capacidade = p->mochilas[i].capacidade;
     }
     for (i = 0; i < p->qnt_item; i++){
+        // Copiar estrutura dos itens para solução temporária.
         s_t->itens[i].profit = p->itens[i].profit;
         s_t->itens[i].adicionado = p->itens[i].adicionado;
     }
 }
 
 void salva_so_temp (Problema *p, S_temporaria *s_t){
-
+    // Copiar FO temporária para FO corrente.
     p->fo_corrente = s_t->fo;
     int i;
     for (i = 0; i < p->qnt_mochilas; i++){
+        // Copiar estrutura das mochilas temporárias para solução corrente.
         p->mochilas[i].cap_restante = s_t->mochilas[i].cap_restante;
         p->mochilas[i].capacidade = s_t->mochilas[i].capacidade;
     }
+    // Copiar estrutura dos itens temporários para solução corrente.
     for (i = 0; i < p->qnt_item; i++){
         p->itens[i].profit = s_t->itens[i].profit;
         p->itens[i].adicionado = s_t->itens[i].adicionado;
@@ -34,41 +38,60 @@ void salva_so_temp (Problema *p, S_temporaria *s_t){
 
 void inserir_probl (Problema *p, int item){
     int m;
+    // Se o item ja estiver na mochila. Retorne.
     if(p->itens[item].adicionado == 1) return;
+    // Se não estiver.
     for (m = 0; m < p->qnt_mochilas; m++){
+        // Atualize a capacidade restante da mochilas.
         p->mochilas[m].cap_restante -= p->restricoes[m][item];
     }
+    // Marque o iten como adicionado.
     p->itens[item].adicionado = 1;
+    // Atualize a função objetivo.
     p->fo_otima = p->fo_corrente += p->itens[item].profit;
 }
 
 void remover_probl (Problema *p, int item){
     int m;
+    // Se o item não estiver na mochila. Retorne.
     if(p->itens[item].adicionado == 0) return;
     for (m = 0; m < p->qnt_mochilas; m++){
+        // Atualize a capacidade restante das mochilas.
         p->mochilas[m].cap_restante += p->restricoes[m][item];
     }
+    // Marque o item como disponível.
     p->itens[item].adicionado = 0;
+    // Atualize a função objetivo.
     p->fo_otima = p->fo_corrente -= p->itens[item].profit;
 }
 
 void inserir_item (S_temporaria *s_temp, Problema *p, int item){
     int m;
+    // Se o item ja estiver na mochila. Retorne.
     if(s_temp->itens[item].adicionado == 1) return;
+    // Se não estiver.
     for (m = 0; m < p->qnt_mochilas; m++){
+        // Atualize a capacidade restante das mochilas.
         s_temp->mochilas[m].cap_restante -= p->restricoes[m][item];
     }
+    // Marque o iten como adicionado.
     s_temp->itens[item].adicionado = 1;
+    // Atualize a função objetivo.
     s_temp->fo += s_temp->itens[item].profit;
 }
 
 void remover_item (S_temporaria *s_temp, Problema *p, int item){
     int m;
+    // Se o item não estiver na mochila. Retorne.
     if(s_temp->itens[item].adicionado == 0) return;
+    // Se estiver na mochila.
     for (m = 0; m < p->qnt_mochilas; m++){
+        // Atualize a capacidade restante das mochilas.
         s_temp->mochilas[m].cap_restante += p->restricoes[m][item];
     }
+    // Marque o iten como adicionado.
     s_temp->itens[item].adicionado = 0;
+    // Atualize a função objetivo.
     s_temp->fo -= s_temp->itens[item].profit;
 }
 
@@ -76,7 +99,9 @@ void remover_item (S_temporaria *s_temp, Problema *p, int item){
 
 int cabe_mochilas(Problema *p, int item){
     int i;
+    // Para cada intem i.
     for(i = 0; i < p->qnt_mochilas; i++){
+        // Se i couber na mochila.
         if(p->restricoes[i][item] > p->mochilas[i].cap_restante){
             return 0;
         }
@@ -102,7 +127,9 @@ int restricao_ferida (S_temporaria p, int qnt_mochilas){
 void constroi_solucao_aleatoria(Problema *p){
 
     int item = rand() % p->qnt_item;
+    // Enquanto existir espaço na mochila.
     while(cabe_mochilas(p,item)){
+        // Inseri item na mochila.
         inserir_probl(p, item);
         item = rand() % p->qnt_item;
     }
@@ -111,7 +138,9 @@ void constroi_solucao_aleatoria(Problema *p){
 void constroi_solucao_gulosa(Problema *p, Razao_item *razoes){
     int i, j, aux;
     ordena_razoes_asc (razoes, p->qnt_item);
+    // Enquanto existir espaço na mochila.
     for(i = 0; i < p->qnt_item && cabe_mochilas(p, razoes[i].id_item); i++){
+        // Insira o item na mochila.
         inserir_probl(p, razoes[i].id_item);
     }
 }
@@ -134,6 +163,8 @@ float prob_piora (float delta, float temperatura_corrente){
 
     double limiar = exp (delta / (double) temperatura_corrente);
     double prob = (double) rand () / RAND_MAX;
+    // Se a relação exp((delta/temperatura)) for menor que
+    // um valor aleatório entre (0,1) return true (movimento aceito).
     if (prob < limiar){
         return 1;
     }
@@ -144,13 +175,16 @@ Razao_item *constroi_array_razoes (Problema *p){
 
     int i,j;
     Razao_item *razoes = malloc (sizeof (Razao_item) * p->qnt_item);
+    // Para cada item.
     for (i = 0; i < p->qnt_item; i++){
         float soma = 0;
+        // Para toda mochila.
         for (j = 0; j < p->qnt_mochilas; j++){
             soma += p->restricoes[j][i];
         }
+        // Calcule a razão deste item e adicione ao vetor.
         razoes[i].razao = p->itens[i].profit / soma;
-        razoes[i].id_item = i;        
+        razoes[i].id_item = i;
     }    
     return razoes;
 }
@@ -224,6 +258,7 @@ float calcula_temperatura_inicial(Problema *p, Razao_item *razoes, float alfa, i
                     aceitos++;
                 }
 	        }
+            // Adicione ou remova os itens sorteados anteriormente.
             for (i = 0; i < 2; i++){
                 if (p->itens[bits[i]].adicionado == 0){
                     inserir_probl (p, bits[i]);
